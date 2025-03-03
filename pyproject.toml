@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mutclust"
+authors = [
+    {name = "Elly Poretsky", email = "eporetsky@plantapp.org"},
+]
+description = "MutClust: Mutual rank-based clustering and GO enrichment analysis."
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["bioinformatics", "coexpression", "mutual rank", "clustering", "leiden", "gene ontology", "RNA-seq", "metabolomics"]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Bio-Informatics"
+]
+dependencies = [
+    "numpy",
+    "pandas",
+    "pynetcor",
+    "python-igraph",
+    "goatools",
+    'importlib-metadata; python_version<"3.10"',
+]
+dynamic = ["version"]
+
+[tool.setuptools.packages]
+# Explicitly include only the 'mutclust' directory
+find = { include = ["mutclust"]}
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "flake8"]
+docs = ["sphinx", "sphinx-rtd-theme"]
+
+[project.scripts]
+mutclust = "mutclust.__main__:main"
