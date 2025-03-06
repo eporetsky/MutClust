@@ -16,11 +16,13 @@
 
 ## Installation
 
-TODO: You can install MutClust directly from PyPI:
+You can install MutClust directly from PyPI:
 
 ```bash
 pip install mutclust
 ```
+
+Note: Because of a known [dependency issue](https://github.com/01life/pyNetCor/issues/1) with PyNetCor, MutClust is not currently available on MacOS through PyPI but installs properly on Linux. 
 
 Alternatively, you can clone the repository and install it locally:
 
