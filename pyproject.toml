@@ -1,17 +1,17 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mutclust"
+name = "MutClust"
+version = "0.1.0"
 authors = [
     {name = "Elly Poretsky", email = "eporetsky@plantapp.org"},
 ]
-description = "MutClust: Mutual rank-based clustering and GO enrichment analysis."
+description = "MutClust: Mutual rank-based coexpression, clustering and GO term enrichment analysis."
 readme = "README.md"
-requires-python = ">=3.8"
 keywords = ["bioinformatics", "coexpression", "mutual rank", "clustering", "leiden", "gene ontology", "RNA-seq", "metabolomics"]
-license = {text = "MIT"}
+license = { file = "LICENSE" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -26,15 +26,25 @@ dependencies = [
     "goatools",
     'importlib-metadata; python_version<"3.10"',
 ]
-dynamic = ["version"]
+requires-python = ">=3.8"
 
 [tool.setuptools.packages]
 # Explicitly include only the 'mutclust' directory
 find = { include = ["mutclust"]}
 
 [project.optional-dependencies]
-dev = ["pytest", "black", "flake8"]
-docs = ["sphinx", "sphinx-rtd-theme"]
+dev = [
+    "pytest",          # For running tests
+    "pytest-cov",      # For test coverage reports
+    "black",           # For code formatting
+    "flake8",          # For linting
+    "mypy",            # For type checking
+    "pre-commit"       # For managing pre-commit hooks
+]
+docs = [
+    "sphinx",          # For generating documentation
+    "sphinx-rtd-theme" # For the ReadTheDocs theme
+]
 
 [project.scripts]
 mutclust = "mutclust.__main__:main"

@@ -4,6 +4,7 @@ from igraph import Graph
 
 
 def filter_to_long_array(mr_df, threshold=100):
+    mr_df = mr_df.astype(float)
     mr_df.values[np.tril_indices_from(mr_df, k=0)] = np.inf
     rows, cols = np.where(mr_df < threshold)
     values = mr_df.values[rows, cols]
