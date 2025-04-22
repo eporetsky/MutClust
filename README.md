@@ -32,6 +32,20 @@ cd mutclust
 pip install .
 ```
 
+### Docker Installation
+
+For users who prefer containerized deployment, MutClust is available as a Docker container:
+
+```bash
+# Build the container
+docker build -t mutclust .
+
+# Run MutClust with your data
+docker run -v /path/to/your/data:/data mutclust --expression /data/your_expression.tsv --output /data/results
+```
+
+The container uses Ubuntu 20.04 and includes all necessary dependencies. Mount your data directory to `/data` inside the container to access your files.
+
 ---
 
 ## Usage
