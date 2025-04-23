@@ -11,6 +11,12 @@
 - **Gene Annotations**: Merge cluster members with gene annotations, if provided.
 - **GO Enrichment Analysis**: Identifies enriched GO terms for each cluster using GOATOOLS.
 - **Highly Configurable**: Supports adjustable thresholds, resolution parameters, and multi-threading for performance optimization.
+- **Calculate correlation matrix and mutual rank from RNA-seq data**
+- **Filter and apply exponential decay to mutual rank values**
+- **Perform Leiden clustering to identify co-expressed gene clusters**
+- **Calculate eigen-genes for each cluster (first principal component)**
+- **Perform GO enrichment analysis on gene clusters**
+- **Annotate clusters with gene information**
 
 ---
 
@@ -52,6 +58,16 @@ The container uses Ubuntu 20.04 and includes all necessary dependencies. Mount y
 
 MutClust provides a command-line interface (CLI) for running the full pipeline. After installation, you can use the `mutclust` command.
 
+### Basic Usage
+
+```bash
+# Using expression data
+mutclust --expression input.tsv --output output_prefix
+
+# Using pre-calculated mutual rank
+mutclust --mutual_rank input.mr.tsv --output output_prefix
+```
+
 ### Command-Line Arguments
 
 | Argument              | Short | Description                                              | Default       |
@@ -66,7 +82,8 @@ MutClust provides a command-line interface (CLI) for running the full pipeline. 
 | `--e_value`           | `-e`  | Exponential decay constant.                              | `10`          |
 | `--resolution`        | `-r`  | Resolution parameter for Leiden clustering.              | `0.1`         |
 | `--threads`           | `-t`  | Number of threads for correlation calculation.           | `4`           |
-| `--save_intermediate` | `-t`  | Number of threads for correlation calculation.           | **Optional**  |
+| `--save_intermediate` | -     | Save intermediate files (PCC, MR, filtered pairs).       | **Optional**  |
+| `--eigengene`         | -     | Calculate eigen-genes for clusters.                      | `True`        |
 
 ### Example Command
 
@@ -150,6 +167,19 @@ GeneB     Transcription factor
    cluster    type    size    term       p-val       FC    desc
    1          BP      25      GO:0008150 0.00123     3.5   Biological Process
    ```
+
+4. **Eigen-gene values** (`<output_prefix>.eigen.tsv`):
+   - Eigen-gene values for each cluster.
+   - Columns: `geneID` and sample columns.
+
+   **Example**:
+   ```tsv
+   geneID    Sample1    Sample2    Sample3
+   c1        0.707107   0.707107   0.707107
+   c2        0.577350   0.577350   0.577350
+   c3        0.500000   0.500000   0.500000
+   ```
+
 ---
 
 ## Dependencies

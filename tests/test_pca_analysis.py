@@ -33,9 +33,9 @@ def test_single_gene_clusters():
     eigen_genes = calculate_eigen_genes(expression_data, gene_clusters)
     
     # Check that each cluster's values match the original expression
-    assert np.allclose(eigen_genes['Cluster_0'].values, 
+    assert np.allclose(eigen_genes['c1'].values, 
                       expression_data.loc['Gene1'].values, rtol=1e-5)
-    assert np.allclose(eigen_genes['Cluster_1'].values, 
+    assert np.allclose(eigen_genes['c2'].values, 
                       expression_data.loc['Gene2'].values, rtol=1e-5)
 
 def test_large_dataset_parallel():
@@ -64,10 +64,10 @@ def test_large_dataset_parallel():
     # Check the output format
     assert isinstance(eigen_genes, pd.DataFrame)
     assert eigen_genes.shape == (n_samples, 10)  # 50 samples, 10 clusters
-    assert all(eigen_genes.columns == [f'Cluster_{i}' for i in range(10)])
+    assert all(eigen_genes.columns == [f'c{i+1}' for i in range(10)])
     
     # Check that each cluster's eigen-gene has the right dimensions
     for i in range(10):
-        assert len(eigen_genes[f'Cluster_{i}']) == n_samples
+        assert len(eigen_genes[f'c{i+1}']) == n_samples
         # Check that the values are not all zeros
-        assert not np.allclose(eigen_genes[f'Cluster_{i}'], 0) 
+        assert not np.allclose(eigen_genes[f'c{i+1}'], 0) 

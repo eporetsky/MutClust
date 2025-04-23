@@ -16,6 +16,9 @@ RUN ln -sf /usr/bin/python3.9 /usr/bin/python3 && \
     ln -sf /usr/bin/python3.9 /usr/bin/python && \
     ln -sf /usr/bin/pip3 /usr/bin/pip
 
+# Install pytest
+RUN pip install pytest
+
 # Create a working directory
 WORKDIR /app
 

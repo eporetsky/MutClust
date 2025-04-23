@@ -2,4 +2,6 @@
 *.egg-info/
 dist/
 build/
+notes/
+data/
 __pycache__/
