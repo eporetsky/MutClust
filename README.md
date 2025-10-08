@@ -38,6 +38,17 @@ cd mutclust
 pip install .
 ```
 
+### Conda Environment (Recommended)
+
+You can optionally use a conda environment for easier dependency management. This is especially useful for installing `clusterone` (required for some workflows) from bioconda:
+
+```bash
+conda env create -f environment.yml
+conda activate mutclust
+```
+
+This will install all core dependencies, `bioconda::clusterone`, and set up MutClust in editable mode. You can still update your code and use the CLI immediately.
+
 ### Docker Installation
 
 For users who prefer containerized deployment, MutClust is available as a Docker container:
@@ -47,7 +58,7 @@ For users who prefer containerized deployment, MutClust is available as a Docker
 docker build -t mutclust .
 
 # Run MutClust with your data
-docker run -v /path/to/your/data:/data mutclust --expression /data/your_expression.tsv --output /data/results
+docker run -v /path/to/your/data:/data mutclust mutclust mr -i /data/your_expression.tsv -o /data/results
 ```
 
 The container uses Ubuntu 20.04 and includes all necessary dependencies. Mount your data directory to `/data` inside the container to access your files.
@@ -56,47 +67,68 @@ The container uses Ubuntu 20.04 and includes all necessary dependencies. Mount y
 
 ## Usage
 
-MutClust provides a command-line interface (CLI) for running the full pipeline. After installation, you can use the `mutclust` command.
+MutClust now provides a Click-based command-line interface (CLI) with three main subcommands:
+
+- `mutclust mr`: Calculate mutual rank from an expression dataset
+- `mutclust cls`: Run clustering analysis on a given MR table
+- `mutclust enr`: Run GO enrichment analysis on clusters
 
 ### Basic Usage
 
 ```bash
-# Using expression data
-mutclust --expression input.tsv --output output_prefix
+# Calculate mutual rank from expression data
+mutclust mr -i input.tsv -o output_prefix
 
-# Using pre-calculated mutual rank
-mutclust --mutual_rank input.mr.tsv --output output_prefix
+# Run clustering analysis on a mutual rank table
+mutclust cls -i output_prefix.mrs.tsv -o output_prefix
+
+# Run GO enrichment analysis on clusters
+mutclust enr -c output_prefix.clusters.tsv -go go-basic.obo -gf tair.gaf -o output_prefix
 ```
 
-### Command-Line Arguments
+### Subcommand Arguments
 
+#### `mutclust mr`
 | Argument              | Short | Description                                              | Default       |
 |-----------------------|-------|----------------------------------------------------------|---------------|
-| `--expression`        | `-ex` | Path to the RNA-seq dataset (TSV format).                | **-ex or -mr required**  |
-| `--mutual_rank`       | `-mr` | Path to Mutual Rank file (TSV format).                   | **-ex or -mr required**  |
-| `--annotations`       | `-a`  | Path to the gene annotation file.                        | **Optional**  |
-| `--go_obo`            | `-go` | Path to the Gene Ontology (GO) OBO file.                 | **Optional**  |
-| `--go_gaf`            | `-gf` | Path to the GO annotation file (GAF format).             | **Optional**  |
+| `--input`             | `-i`  | Path to the RNA-seq dataset (TSV format).                | **Required**  |
 | `--output`            | `-o`  | Output prefix for the results.                           | **Required**  |
-| `--mr_threshold`      | `-m`  | Mutual rank threshold for filtering.                     | `100`         |
-| `--e_value`           | `-e`  | Exponential decay constant.                              | `10`          |
-| `--resolution`        | `-r`  | Resolution parameter for Leiden clustering.              | `0.1`         |
+| `--mr-threshold`      | `-m`  | Mutual rank threshold for filtering.                     | `100`         |
+| `--e-value`           | `-e`  | Exponential decay constant.                              | `10`          |
 | `--threads`           | `-t`  | Number of threads for correlation calculation.           | `4`           |
-| `--save_intermediate` | -     | Save intermediate files (PCC, MR, filtered pairs).       | **Optional**  |
-| `--eigengene`         | -     | Calculate eigen-genes for clusters.                      | `True`        |
+| `--save-intermediate` |       | Save intermediate files (PCC, MR, filtered pairs).       | **Optional**  |
 
-### Example Command
+#### `mutclust cls`
+| Argument              | Short | Description                                              | Default       |
+|-----------------------|-------|----------------------------------------------------------|---------------|
+| `--input`             | `-i`  | Path to Mutual Rank (MR) table (TSV format).             | **Required**  |
+| `--output`            | `-o`  | Output prefix for the results.                           | **Required**  |
+| `--annotations`       | `-a`  | Path to the gene annotation file.                        | **Optional**  |
+| `--resolution`        | `-r`  | Resolution parameter for Leiden clustering.              | `0.1`         |
+| `--eigengene/--no-eigengene` | | Calculate eigen-genes for clusters.                      | `True`        |
+| `--expression`        |       | Path to RNA-seq dataset for eigen-gene calculation.      | **Required if --eigengene** |
+
+#### `mutclust enr`
+| Argument              | Short | Description                                              | Default       |
+|-----------------------|-------|----------------------------------------------------------|---------------|
+| `--clusters`          | `-c`  | Path to clusters file (TSV format).                      | **Required**  |
+| `--go-obo`            | `-go` | Path to the Gene Ontology (GO) OBO file.                 | **Required**  |
+| `--go-gaf`            | `-gf` | Path to the GO annotation file (GAF format).             | **Required**  |
+| `--output`            | `-o`  | Output prefix for the results.                           | **Required**  |
+| `--expression`        |       | Path to RNA-seq dataset for background gene set.         | **Optional**  |
+
+### Example Workflow
 
 ```bash
-mutclust --expression data/AtCol-0.cpm.tsv \
-         --annotations annotations/AtCol-0.annot.tsv \
-         --go_obo go-basic.obo \
-         --go_gaf tair.gaf \
-         --output results/mutclust_output \
-         --mr_threshold 100 \
-         --e_value 10 \
-         --resolution 0.1 \
-         --threads 8
+# Step 1: Calculate mutual rank
+tab="data/AtCol-0.cpm.tsv"
+mutclust mr -i $tab -o results/atcol0
+
+# Step 2: Cluster genes
+mutclust cls -i results/atcol0.mrs.tsv -o results/atcol0 --annotations annotations/AtCol-0.annot.tsv --expression $tab
+
+# Step 3: GO enrichment
+mutclust enr -c results/atcol0.clusters.tsv -go go-basic.obo -gf tair.gaf -o results/atcol0 --expression $tab
 ```
 
 ---
@@ -137,7 +169,7 @@ GeneB     Transcription factor
 
 1. **Filtered MR and e-values** (`<output_prefix>.mrs.tsv`):
    - Lists of coexpressed genes with MR and e-values.
-   - Columns: `cluster_id`, `geneID`.
+   - Columns: `Gene1`, `Gene2`, `MR`, `ED`.
 
    **Example**:
    ```tsv
@@ -149,13 +181,13 @@ GeneB     Transcription factor
 2. **Clustered Genes** (`<output_prefix>.clusters.tsv`):
    - Lists genes in each cluster.
    - Annotation columns if provided.
-   - Columns: `cluster_id`, `geneID`.
+   - Columns: `clusterID`, `geneID`.
 
    **Example**:
    ```tsv
-   cluster_id    geneID    Annotations
-   1             GeneA     ...
-   1             GeneB     ...
+   clusterID    geneID    Annotations
+   c1           GeneA     ...
+   c1           GeneB     ...
    ```
 
 3. **GO Enrichment Results** (`<output_prefix>_go_enrichment_results.tsv`):
@@ -165,7 +197,7 @@ GeneB     Transcription factor
    **Example**:
    ```tsv
    cluster    type    size    term       p-val       FC    desc
-   1          BP      25      GO:0008150 0.00123     3.5   Biological Process
+   c1         BP      25      GO:0008150 0.00123     3.5   Biological Process
    ```
 
 4. **Eigen-gene values** (`<output_prefix>.eigen.tsv`):
@@ -190,6 +222,10 @@ The following Python libraries are required and will be installed automatically:
 - `pynetcor`
 - `python-igraph`
 - `goatools`
+- `scikit-learn`
+- `click`
+
+Other dependencies (such as `clusterone`) can be installed via conda/bioconda as needed.
 
 ---
 

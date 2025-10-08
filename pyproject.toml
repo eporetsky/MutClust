@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "MutClust"
-version = "0.1.2"
+version = "0.1.4"
 authors = [
     {name = "Elly Poretsky", email = "eporetsky@plantapp.org"},
 ]
@@ -48,4 +48,4 @@ docs = [
 ]
 
 [project.scripts]
-mutclust = "mutclust.__main__:main"
+mutclust = "mutclust.__main__:cli"

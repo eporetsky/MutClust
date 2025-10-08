@@ -1,0 +1,11 @@
+name: mutclust
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.9
+  - pip
+  - clusterone=1.0
+  - pip:
+      - click
+      - .
