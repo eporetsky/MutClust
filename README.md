@@ -1,240 +1,116 @@
-# MutClust: Mutual Rank-Based Clustering and GO Enrichment Analysis
+# MutClust: Efficient and Scalable Mutual Rank-Based Coexpression Clustering
 
-**MutClust** is a Python package designed for RNA-seq gene coexpression analyses. It performs mutual rank (MR)-based clustering of coexpressed genes and identifies enriched Gene Ontology (GO) terms for the resulting clusters. The package is optimized for speed, able to run a whole-genome coexpression analysis in minutes.
+**MutClust** is a Python tool for efficient and scalable mutual rank-based gene coexpression analyses. The clustering analysis is conducted using [ClusterONE](https://paccanarolab.org/clusterone/), as described in [Wisecaver *et al.* 2017](https://academic.oup.com/plcell/article-abstract/29/5/944/6099316). MutClust is still under development.
 
 ---
 
 ## Features
-
-- **Mutual Rank Analysis**: Calculates MR from Pearson correlation coefficients to identify coexpressed genes.
-- **Leiden Clustering**: Groups genes into clusters based on mutual rank and exponential decay weights.
-- **Gene Annotations**: Merge cluster members with gene annotations, if provided.
-- **GO Enrichment Analysis**: Identifies enriched GO terms for each cluster using GOATOOLS.
-- **Highly Configurable**: Supports adjustable thresholds, resolution parameters, and multi-threading for performance optimization.
-- **Calculate correlation matrix and mutual rank from RNA-seq data**
-- **Filter and apply exponential decay to mutual rank values**
-- **Perform Leiden clustering to identify co-expressed gene clusters**
-- **Calculate eigen-genes for each cluster (first principal component)**
-- **Perform GO enrichment analysis on gene clusters**
-- **Annotate clusters with gene information**
+- **Mutual Rank Analysis:** Compute mutual rank (MR) from Pearson correlations on your gene expression matrix.
+- **ClusterONE Clustering:** Identify gene coexpression clusters from filtered/weighted MR networks.
+- **Fast:** Multi-threaded, sparse matrix operations for speed on large datasets.
 
 ---
 
 ## Installation
 
-You can install MutClust directly from PyPI:
+### Recommended
 
+**Install MutClust:** Create the recommended conda environment:
+```bash
+conda env create -f environment.yml
+conda activate mutclust
+```
+
+### Alternative
+
+**Step 1:** Make sure that ClusterONE is available from the command line:
+```bash
+conda install bioconda::clusterone
+```
+
+**Step 2a:** Install MutClust from PyPI:
 ```bash
 pip install mutclust
 ```
 
-Note: Because of a known [dependency issue](https://github.com/01life/pyNetCor/issues/1) with PyNetCor, MutClust is not currently available on MacOS through PyPI but installs properly on Linux. 
-
-Alternatively, you can clone the repository and install it locally:
-
+**Step 2b:** Or clone the repository from GitHub:
 ```bash
 git clone https://github.com/eporetsky/mutclust.git
 cd mutclust
 pip install .
 ```
 
-### Conda Environment (Recommended)
-
-You can optionally use a conda environment for easier dependency management. This is especially useful for installing `clusterone` (required for some workflows) from bioconda:
-
-```bash
-conda env create -f environment.yml
-conda activate mutclust
-```
-
-This will install all core dependencies, `bioconda::clusterone`, and set up MutClust in editable mode. You can still update your code and use the CLI immediately.
-
-### Docker Installation
-
-For users who prefer containerized deployment, MutClust is available as a Docker container:
-
-```bash
-# Build the container
-docker build -t mutclust .
-
-# Run MutClust with your data
-docker run -v /path/to/your/data:/data mutclust mutclust mr -i /data/your_expression.tsv -o /data/results
-```
-
-The container uses Ubuntu 20.04 and includes all necessary dependencies. Mount your data directory to `/data` inside the container to access your files.
-
----
-
 ## Usage
 
-MutClust now provides a Click-based command-line interface (CLI) with three main subcommands:
-
-- `mutclust mr`: Calculate mutual rank from an expression dataset
-- `mutclust cls`: Run clustering analysis on a given MR table
-- `mutclust enr`: Run GO enrichment analysis on clusters
-
-### Basic Usage
+### 1. Calculate Mutual Rank (MR)
 
 ```bash
-# Calculate mutual rank from expression data
-mutclust mr -i input.tsv -o output_prefix
-
-# Run clustering analysis on a mutual rank table
-mutclust cls -i output_prefix.mrs.tsv -o output_prefix
-
-# Run GO enrichment analysis on clusters
-mutclust enr -c output_prefix.clusters.tsv -go go-basic.obo -gf tair.gaf -o output_prefix
+mutclust mr -i expr.tsv -o results.mrs.tsv.gz --mr-threshold 100 --threads 4 [--log2]
 ```
 
-### Subcommand Arguments
+| Argument         | Short | Description                                         | Default       |
+|------------------|-------|-----------------------------------------------------|---------------|
+| --input          | -i    | Path to the RNA-seq dataset (.tsv/.tsv.gz)          | **Required**  |
+| --output         | -o    | Output file for mutual rank pairs                   | **Required**  |
+| --mr-threshold   | -m    | MR threshold for reporting gene pairs               | 100           |
+| --threads        | -t    | Number of CPU threads (correlation)                 | 4             |
+| --log2           |       | If set, applies log2(x+1) before calculation        | OFF by default|
 
-#### `mutclust mr`
-| Argument              | Short | Description                                              | Default       |
-|-----------------------|-------|----------------------------------------------------------|---------------|
-| `--input`             | `-i`  | Path to the RNA-seq dataset (TSV format).                | **Required**  |
-| `--output`            | `-o`  | Output prefix for the results.                           | **Required**  |
-| `--mr-threshold`      | `-m`  | Mutual rank threshold for filtering.                     | `100`         |
-| `--e-value`           | `-e`  | Exponential decay constant.                              | `10`          |
-| `--threads`           | `-t`  | Number of threads for correlation calculation.           | `4`           |
-| `--save-intermediate` |       | Save intermediate files (PCC, MR, filtered pairs).       | **Optional**  |
+- Input: Genes as rows, samples as columns (TSV, row index 'geneID').
+- Output: Gzipped tab-separated file containing `Gene1`, `Gene2`, `MR`.
 
-#### `mutclust cls`
-| Argument              | Short | Description                                              | Default       |
-|-----------------------|-------|----------------------------------------------------------|---------------|
-| `--input`             | `-i`  | Path to Mutual Rank (MR) table (TSV format).             | **Required**  |
-| `--output`            | `-o`  | Output prefix for the results.                           | **Required**  |
-| `--annotations`       | `-a`  | Path to the gene annotation file.                        | **Optional**  |
-| `--resolution`        | `-r`  | Resolution parameter for Leiden clustering.              | `0.1`         |
-| `--eigengene/--no-eigengene` | | Calculate eigen-genes for clusters.                      | `True`        |
-| `--expression`        |       | Path to RNA-seq dataset for eigen-gene calculation.      | **Required if --eigengene** |
-
-#### `mutclust enr`
-| Argument              | Short | Description                                              | Default       |
-|-----------------------|-------|----------------------------------------------------------|---------------|
-| `--clusters`          | `-c`  | Path to clusters file (TSV format).                      | **Required**  |
-| `--go-obo`            | `-go` | Path to the Gene Ontology (GO) OBO file.                 | **Required**  |
-| `--go-gaf`            | `-gf` | Path to the GO annotation file (GAF format).             | **Required**  |
-| `--output`            | `-o`  | Output prefix for the results.                           | **Required**  |
-| `--expression`        |       | Path to RNA-seq dataset for background gene set.         | **Optional**  |
-
-### Example Workflow
+### 2. Cluster Genes (with ClusterONE)
 
 ```bash
-# Step 1: Calculate mutual rank
-tab="data/AtCol-0.cpm.tsv"
-mutclust mr -i $tab -o results/atcol0
+mutclust cls -i results.mrs.tsv.gz -o results.cls.tsv --e_value 10
+```
 
-# Step 2: Cluster genes
-mutclust cls -i results/atcol0.mrs.tsv -o results/atcol0 --annotations annotations/AtCol-0.annot.tsv --expression $tab
+| Argument         | Short | Description                                         | Default       |
+|------------------|-------|-----------------------------------------------------|---------------|
+| --input          | -i    | Path to Mutual Rank (MR) pairs (.tsv/.tsv.gz)       | **Required**  |
+| --output         | -o    | Output file for clusters (.tsv)                     | **Required**  |
+| --e_value        | -e    | Exponential decay constant for edge weighting       | 10            |
 
-# Step 3: GO enrichment
-mutclust enr -c results/atcol0.clusters.tsv -go go-basic.obo -gf tair.gaf -o results/atcol0 --expression $tab
+- The tool filters/weights MR pairs and calls ClusterONE for clustering.
+- Output: `clusters.tsv`, listing clusters with p-value < 0.1. Tab-separated file containing `clusterID`, `geneID`, `pval`.
+
+---
+
+## Example Workflow
+
+```bash
+mutclust mr -i data/myexpr.tsv -o out.mrs.tsv.gz --mr-threshold 100 --threads 72 --log2
+mutclust cls -i out.mrs.tsv.gz -o out.clusters.tsv --e_value 10
 ```
 
 ---
 
-## Input File Formats
+## Input Format
 
-### RNA-seq Dataset
-- **Format**: Tab-separated values (TSV).
-- **Columns**: Gene IDs as row indices and samples as columns.
-- **Example**:
-```tsv
-geneID    Sample1    Sample2    Sample3
-GeneA     1.23       2.34       3.45
-GeneB     4.56       5.67       6.78
+Expression file:
+```
+geneID\tSample1\tSample2\n...
+GeneA \t1.1    \t2.2
+GeneB \t4.2    \t3.7
 ```
 
-### Gene Annotation File
-- **Format**: Tab-separated values (TSV).
-- **Columns**: `geneID` and additional annotation fields. 
-- **Example**:
-```tsv
-geneID    description
-GeneA     Photosynthesis-related protein
-GeneB     Transcription factor
-```
-
-### GO OBO File
-- **Description**: The Gene Ontology (GO) OBO file contains the ontology structure.
-- **Source**: Download from [Gene Ontology](http://geneontology.org/).
-
-### GO GAF File
-- **Description**: The Gene Annotation File (GAF) maps genes to GO terms.
-- **Source**: Download from [Gene Ontology](http://geneontology.org/).
+Note: MutClust might be limited to linux because of dependency on pynetcor.
 
 ---
 
-## Output Files
-
-1. **Filtered MR and e-values** (`<output_prefix>.mrs.tsv`):
-   - Lists of coexpressed genes with MR and e-values.
-   - Columns: `Gene1`, `Gene2`, `MR`, `ED`.
-
-   **Example**:
-   ```tsv
-   Gene1    Gene2    MR    ED
-   GeneA    GeneB    10.2  0.39
-   GeneB    GeneC    6     0.6
-   ```
-
-2. **Clustered Genes** (`<output_prefix>.clusters.tsv`):
-   - Lists genes in each cluster.
-   - Annotation columns if provided.
-   - Columns: `clusterID`, `geneID`.
-
-   **Example**:
-   ```tsv
-   clusterID    geneID    Annotations
-   c1           GeneA     ...
-   c1           GeneB     ...
-   ```
-
-3. **GO Enrichment Results** (`<output_prefix>_go_enrichment_results.tsv`):
-   - Contains enriched GO terms for each cluster.
-   - Columns: `cluster`, `type`, `size`, `term`, `p-val`, `FC`, `desc`.
-
-   **Example**:
-   ```tsv
-   cluster    type    size    term       p-val       FC    desc
-   c1         BP      25      GO:0008150 0.00123     3.5   Biological Process
-   ```
-
-4. **Eigen-gene values** (`<output_prefix>.eigen.tsv`):
-   - Eigen-gene values for each cluster.
-   - Columns: `geneID` and sample columns.
-
-   **Example**:
-   ```tsv
-   geneID    Sample1    Sample2    Sample3
-   c1        0.707107   0.707107   0.707107
-   c2        0.577350   0.577350   0.577350
-   c3        0.500000   0.500000   0.500000
-   ```
-
----
-
-## Dependencies
-
-The following Python libraries are required and will be installed automatically:
-- `numpy`
-- `pandas`
-- `pynetcor`
-- `python-igraph`
-- `goatools`
-- `scikit-learn`
-- `click`
-
-Other dependencies (such as `clusterone`) can be installed via conda/bioconda as needed.
+## Coming Soon
+- Generate cluster gene annotation
+- Calculate cluster GO term enrichment
+- Calculate clusteer eigen-gene data
+- Add a MutClust Dockerfile
+- Add unit testing
 
 ---
 
 ## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT License. See LICENSE file for details.
 
 ---
 
 ## Contributing
-
-Contributions, suggestions and issues are welcome!
+Suggestions, pull requests, and issues welcome!

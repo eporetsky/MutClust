@@ -1,3 +1,8 @@
+"""
+MutClust: Mutual Rank Calculation
+
+Implements fast mutual rank calculation from an expression matrix with optional log2(x+1) transform. Used for network/cluster analysis preparation.
+"""
 import pandas as pd
 import numpy as np
 from pynetcor.cor import corrcoef
@@ -5,12 +10,12 @@ from scipy import sparse
 import gc
 import pigz
 
-def calculate_mutual_rank(file_path, threads, mr_threshold, output_path):
+def calculate_mutual_rank(file_path, threads, mr_threshold, output_path, log2=True):
     df = pd.read_csv(file_path, sep="\t", index_col="geneID")
     # Zero variance row filter
     df = df.loc[df.var(axis=1) > 0]
-    # log2(cpm+1) transformation
-    df = np.log2(df + 1)
+    if log2:
+        df = np.log2(df + 1)
 
     print("calculating correlation matrix")
     corr_np = corrcoef(df, threads=threads)
@@ -20,28 +25,18 @@ def calculate_mutual_rank(file_path, threads, mr_threshold, output_path):
     del df
     gc.collect()
 
-    print("Converting to float32")
     corr_np = corr_np.astype(np.float32)
 
-    # Mask diagonal before ranking (self-correlation should not affect ranks)
-    #corr_np_masked = corr_np.copy()
-    #np.fill_diagonal(corr_np_masked, -np.inf)
-
-    #row_ranks = np.argsort(-corr_np_masked, axis=1).argsort(axis=1) + 1
-    #col_ranks = np.argsort(-corr_np_masked, axis=0).argsort(axis=0) + 1
-    
     import concurrent.futures
     def rank_row(row):
         # Clip and convert to uint16 immediately to save memory
         ranks = np.argsort(-row).argsort() + 1
         return np.clip(ranks, 1, 250).astype(np.uint16)
     
-    print("Ranking rows")
+    print("Ranking columns and rows")
     # Cap ranks at 250 to keep product <= 62500 (fits in uint16)
     with concurrent.futures.ThreadPoolExecutor() as executor:
         row_ranks = np.array(list(executor.map(rank_row, corr_np)), dtype=np.uint16)
-
-    print("Ranking columns")
     with concurrent.futures.ThreadPoolExecutor() as executor:
         col_ranks = np.array(list(executor.map(rank_row, corr_np.T)), dtype=np.uint16).T
  
