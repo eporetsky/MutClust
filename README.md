@@ -15,7 +15,7 @@
 
 ### Recommended
 
-**Install MutClust:** Create the recommended conda environment:
+**Install MutClust:**
 ```bash
 conda env create -f environment.yml
 conda activate mutclust
